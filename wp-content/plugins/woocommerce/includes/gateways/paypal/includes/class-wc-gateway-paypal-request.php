@@ -249,23 +249,24 @@ class WC_Gateway_Paypal_Request {
 	 */
 	protected function get_shipping_args( $order ) {
 		$shipping_args = array();
-		if ( $order->needs_shipping_address() ) {
+
+		if ( 'yes' === $this->gateway->get_option( 'send_shipping' ) ) {
 			$shipping_args['address_override'] = $this->gateway->get_option( 'address_override' ) === 'yes' ? 1 : 0;
 			$shipping_args['no_shipping']      = 0;
-			if ( 'yes' === $this->gateway->get_option( 'send_shipping' ) ) {
-				// If we are sending shipping, send shipping address instead of billing.
-				$shipping_args['first_name'] = $this->limit_length( $order->get_shipping_first_name(), 32 );
-				$shipping_args['last_name']  = $this->limit_length( $order->get_shipping_last_name(), 64 );
-				$shipping_args['address1']   = $this->limit_length( $order->get_shipping_address_1(), 100 );
-				$shipping_args['address2']   = $this->limit_length( $order->get_shipping_address_2(), 100 );
-				$shipping_args['city']       = $this->limit_length( $order->get_shipping_city(), 40 );
-				$shipping_args['state']      = $this->get_paypal_state( $order->get_shipping_country(), $order->get_shipping_state() );
-				$shipping_args['country']    = $this->limit_length( $order->get_shipping_country(), 2 );
-				$shipping_args['zip']        = $this->limit_length( wc_format_postcode( $order->get_shipping_postcode(), $order->get_shipping_country() ), 32 );
-			}
+
+			// If we are sending shipping, send shipping address instead of billing.
+			$shipping_args['first_name'] = $this->limit_length( $order->get_shipping_first_name(), 32 );
+			$shipping_args['last_name']  = $this->limit_length( $order->get_shipping_last_name(), 64 );
+			$shipping_args['address1']   = $this->limit_length( $order->get_shipping_address_1(), 100 );
+			$shipping_args['address2']   = $this->limit_length( $order->get_shipping_address_2(), 100 );
+			$shipping_args['city']       = $this->limit_length( $order->get_shipping_city(), 40 );
+			$shipping_args['state']      = $this->get_paypal_state( $order->get_shipping_country(), $order->get_shipping_state() );
+			$shipping_args['country']    = $this->limit_length( $order->get_shipping_country(), 2 );
+			$shipping_args['zip']        = $this->limit_length( wc_format_postcode( $order->get_shipping_postcode(), $order->get_shipping_country() ), 32 );
 		} else {
 			$shipping_args['no_shipping'] = 1;
 		}
+
 		return $shipping_args;
 	}
 

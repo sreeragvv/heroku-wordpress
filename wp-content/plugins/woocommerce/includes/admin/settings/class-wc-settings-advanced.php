@@ -51,7 +51,6 @@ class WC_Settings_Advanced extends WC_Settings_Page {
 	 * Get settings array.
 	 *
 	 * @param string $current_section Current section slug.
-	 *
 	 * @return array
 	 */
 	public function get_settings( $current_section = '' ) {
@@ -78,15 +77,7 @@ class WC_Settings_Advanced extends WC_Settings_Page {
 						'default'  => '',
 						'class'    => 'wc-enhanced-select-nostd',
 						'css'      => 'min-width:300px;',
-						'args'     => array(
-							'exclude' =>
-								array(
-									wc_get_page_id( 'checkout' ),
-									wc_get_page_id( 'myaccount' ),
-								),
-						),
 						'desc_tip' => true,
-						'autoload' => false,
 					),
 
 					array(
@@ -98,15 +89,7 @@ class WC_Settings_Advanced extends WC_Settings_Page {
 						'default'  => '',
 						'class'    => 'wc-enhanced-select-nostd',
 						'css'      => 'min-width:300px;',
-						'args'     => array(
-							'exclude' =>
-								array(
-									wc_get_page_id( 'cart' ),
-									wc_get_page_id( 'myaccount' ),
-								),
-						),
 						'desc_tip' => true,
-						'autoload' => false,
 					),
 
 					array(
@@ -118,15 +101,7 @@ class WC_Settings_Advanced extends WC_Settings_Page {
 						'default'  => '',
 						'class'    => 'wc-enhanced-select-nostd',
 						'css'      => 'min-width:300px;',
-						'args'     => array(
-							'exclude' =>
-								array(
-									wc_get_page_id( 'cart' ),
-									wc_get_page_id( 'checkout' ),
-								),
-						),
 						'desc_tip' => true,
-						'autoload' => false,
 					),
 
 					array(
@@ -183,7 +158,7 @@ class WC_Settings_Advanced extends WC_Settings_Page {
 						'title' => __( 'Checkout endpoints', 'woocommerce' ),
 						'type'  => 'title',
 						'desc'  => __( 'Endpoints are appended to your page URLs to handle specific actions during the checkout process. They should be unique.', 'woocommerce' ),
-						'id'    => 'checkout_endpoint_options',
+						'id'    => 'account_endpoint_options',
 					),
 
 					array(
@@ -406,9 +381,7 @@ class WC_Settings_Advanced extends WC_Settings_Page {
 	 * Form method.
 	 *
 	 * @deprecated 3.4.4
-	 *
 	 * @param  string $method Method name.
-	 *
 	 * @return string
 	 */
 	public function form_method( $method ) {
@@ -457,19 +430,6 @@ class WC_Settings_Advanced extends WC_Settings_Page {
 				$_POST['woocommerce_terms_page_id'] = '';
 			}
 
-			// Prevent the Cart, checkout and my account page from being set to the same page.
-			if ( isset( $_POST['woocommerce_cart_page_id'], $_POST['woocommerce_checkout_page_id'], $_POST['woocommerce_myaccount_page_id'] ) ) { // WPCS: input var ok, CSRF ok.
-				if ( $_POST['woocommerce_cart_page_id'] === $_POST['woocommerce_checkout_page_id'] ) { // WPCS: input var ok, CSRF ok.
-					$_POST['woocommerce_checkout_page_id'] = '';
-				}
-				if ( $_POST['woocommerce_cart_page_id'] === $_POST['woocommerce_myaccount_page_id'] ) { // WPCS: input var ok, CSRF ok.
-					$_POST['woocommerce_myaccount_page_id'] = '';
-				}
-				if ( $_POST['woocommerce_checkout_page_id'] === $_POST['woocommerce_myaccount_page_id'] ) { // WPCS: input var ok, CSRF ok.
-					$_POST['woocommerce_myaccount_page_id'] = '';
-				}
-			}
-
 			WC_Admin_Settings::save_fields( $settings );
 
 			if ( $current_section ) {
@@ -485,7 +445,6 @@ class WC_Settings_Advanced extends WC_Settings_Page {
  * @deprecated 3.4 in favour of WC_Settings_Advanced.
  * @todo remove in 4.0.
  */
-class WC_Settings_Rest_API extends WC_Settings_Advanced {
-} // @codingStandardsIgnoreLine.
+class WC_Settings_Rest_API extends WC_Settings_Advanced {} // @codingStandardsIgnoreLine.
 
 return new WC_Settings_Advanced();

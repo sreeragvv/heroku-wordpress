@@ -72,12 +72,12 @@
 			return dismissButton;
 		}
 
-		function addURLParameters( context, url ) {
-			var urlParams = marketplace_suggestions.in_app_purchase_params;
-			urlParams.utm_source = 'unknown';
-			urlParams.utm_campaign = 'marketplacesuggestions';
-			urlParams.utm_medium = 'product';
-
+		function addUTMParameters( context, url ) {
+			var utmParams = {
+				utm_source: 'unknown',
+				utm_campaign: 'marketplacesuggestions',
+				utm_medium: 'product'
+			};
 			var sourceContextMap = {
 				'productstable': [
 					'products-list-inline'
@@ -102,31 +102,19 @@
 				return _.contains( sourceInfo, context );
 			} );
 			if ( utmSource ) {
-				urlParams.utm_source = utmSource;
+				utmParams.utm_source = utmSource;
 			}
 
-			return url + '?' + jQuery.param( urlParams );
+			return url + '?' + jQuery.param( utmParams );
 		}
 
 		// Render DOM element for suggestion linkout, optionally with button style.
 		function renderLinkout( context, product, promoted, slug, url, text, isButton ) {
 			var linkoutButton = document.createElement( 'a' );
 
-			var utmUrl = addURLParameters( context, url );
+			var utmUrl = addUTMParameters( context, url );
 			linkoutButton.setAttribute( 'href', utmUrl );
-
-			// By default, CTA links should open in same tab (and feel integrated with Woo).
-			// Exception: when editing products, use new tab. User may have product edits
-			// that need to be saved.
-			var newTabContexts = [
-				'product-edit-meta-tab-header',
-				'product-edit-meta-tab-footer',
-				'product-edit-meta-tab-body'
-			];
-			if ( _.includes( newTabContexts, context ) ) {
-				linkoutButton.setAttribute( 'target', 'blank' );
-			}
-
+			linkoutButton.setAttribute( 'target', 'blank' );
 			linkoutButton.textContent = text;
 
 			linkoutButton.onclick = function() {

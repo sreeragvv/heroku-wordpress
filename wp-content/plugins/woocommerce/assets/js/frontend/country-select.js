@@ -92,13 +92,12 @@ jQuery( function( $ ) {
 		}
 
 		var country     = $( this ).val(),
-			$statebox     = $wrapper.find( '#billing_state, #shipping_state, #calc_shipping_state' ),
-			$parent       = $statebox.closest( '.form-row' ),
-			input_name    = $statebox.attr( 'name' ),
-			input_id      = $statebox.attr('id'),
-			input_classes = $statebox.attr('data-input-classes'),
-			value         = $statebox.val(),
-			placeholder   = $statebox.attr( 'placeholder' ) || $statebox.attr( 'data-placeholder' ) || '',
+			$statebox   = $wrapper.find( '#billing_state, #shipping_state, #calc_shipping_state' ),
+			$parent     = $statebox.closest( 'p.form-row' ),
+			input_name  = $statebox.attr( 'name' ),
+			input_id    = $statebox.attr( 'id' ),
+			value       = $statebox.val(),
+			placeholder = $statebox.attr( 'placeholder' ) || $statebox.attr( 'data-placeholder' ) || '',
 			$newstate;
 
 		if ( states[ country ] ) {
@@ -107,8 +106,7 @@ jQuery( function( $ ) {
 					.prop( 'id', input_id )
 					.prop( 'name', input_name )
 					.prop( 'placeholder', placeholder )
-					.attr( 'data-input-classes', input_classes )
-					.addClass( 'hidden ' + input_classes );
+					.addClass( 'hidden' );
 				$parent.hide().find( '.select2-container' ).remove();
 				$statebox.replaceWith( $newstate );
 				$( document.body ).trigger( 'country_to_state_changed', [ country, $wrapper ] );
@@ -127,8 +125,7 @@ jQuery( function( $ ) {
 						.prop( 'id', input_id )
 						.prop( 'name', input_name )
 						.data( 'placeholder', placeholder )
-						.attr( 'data-input-classes', input_classes )
-						.addClass( 'state_select ' + input_classes );
+						.addClass( 'state_select' );
 					$statebox.replaceWith( $newstate );
 					$statebox = $wrapper.find( '#billing_state, #shipping_state, #calc_shipping_state' );
 				}
@@ -151,9 +148,8 @@ jQuery( function( $ ) {
 				$newstate = $( '<input type="text" />' )
 					.prop( 'id', input_id )
 					.prop( 'name', input_name )
-					.prop('placeholder', placeholder)
-					.attr('data-input-classes', input_classes )
-					.addClass( 'input-text  ' + input_classes );
+					.prop( 'placeholder', placeholder )
+					.addClass( 'input-text' );
 				$parent.show().find( '.select2-container' ).remove();
 				$statebox.replaceWith( $newstate );
 				$( document.body ).trigger( 'country_to_state_changed', [country, $wrapper ] );

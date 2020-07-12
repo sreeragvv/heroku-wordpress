@@ -41,7 +41,7 @@ class WC_Admin_Setup_Wizard_Tracking {
 	 * @return string
 	 */
 	public function get_current_step() {
-		return isset( $_GET['step'] ) ? sanitize_key( $_GET['step'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		return isset( $_GET['step'] ) ? sanitize_key( $_GET['step'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.NoNonceVerification
 	}
 
 	/**
@@ -76,7 +76,7 @@ class WC_Admin_Setup_Wizard_Tracking {
 	 * @return void
 	 */
 	public function track_start( $option, $value ) {
-		if ( 'yes' !== $value || empty( $_GET['page'] ) || 'wc-setup' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( 'yes' !== $value || empty( $_GET['page'] ) || 'wc-setup' !== $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.NoNonceVerification
 			return;
 		}
 
@@ -93,10 +93,11 @@ class WC_Admin_Setup_Wizard_Tracking {
 
 		wc_enqueue_js(
 			"
-			jQuery( '#mc-embedded-subscribe' ).click( function() {
+			var form = $( '.newsletter-form-email' ).closest( 'form' );
+			$( document ).on( 'submit', form, function() {
 				window.wcTracks.recordEvent( 'obw_marketing_signup' );
 			} );
-			jQuery( '.wc-setup-content a' ).click( function trackNextScreen( e ) {
+			$( '.wc-setup-content a' ).click( function trackNextScreen( e ) {
 				var properties = {
 					next_url: e.target.href,
 					button: e.target.textContent && e.target.textContent.trim()
@@ -111,12 +112,7 @@ class WC_Admin_Setup_Wizard_Tracking {
 	 * Track various events when a step is saved.
 	 */
 	public function add_step_save_events() {
-		// Always record a track on this page view.
-		if ( 'next_steps' === $this->get_current_step() ) {
-			add_action( 'admin_init', array( $this, 'track_next_steps' ), 1 );
-		}
-
-		if ( empty( $_POST['save_step'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( empty( $_POST['save_step'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.NoNonceVerification
 			return;
 		}
 
@@ -148,7 +144,7 @@ class WC_Admin_Setup_Wizard_Tracking {
 	 * @return void
 	 */
 	public function track_store_setup() {
-		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput
+		// phpcs:disable WordPress.Security.NonceVerification.NoNonceVerification, WordPress.Security.ValidatedSanitizedInput
 		$properties = array(
 			'country'        => isset( $_POST['store_country'] ) ? sanitize_text_field( $_POST['store_country'] ) : '',
 			'currency_code'  => isset( $_POST['currency_code'] ) ? sanitize_text_field( $_POST['currency_code'] ) : '',
@@ -192,10 +188,12 @@ class WC_Admin_Setup_Wizard_Tracking {
 			$created_accounts[] = 'ppec_paypal';
 		}
 
+		// phpcs:disable WordPress.Security.NonceVerification.NoNonceVerification, WordPress.Security.ValidatedSanitizedInput
 		$properties = array(
 			'selected_gateways' => implode( ', ', $selected_gateways ),
 			'created_accounts'  => implode( ', ', $created_accounts ),
 		);
+		// phpcs:enable
 
 		WC_Tracks::record_event( 'obw_payments', $properties );
 	}
@@ -206,7 +204,7 @@ class WC_Admin_Setup_Wizard_Tracking {
 	 * @return void
 	 */
 	public function track_shipping() {
-		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput
+		// phpcs:disable WordPress.Security.NonceVerification.NoNonceVerification, WordPress.Security.ValidatedSanitizedInput
 		$properties = array(
 			'weight_unit'       => isset( $_POST['weight_unit'] ) ? sanitize_text_field( wp_unslash( $_POST['weight_unit'] ) ) : '',
 			'dimension_unit'    => isset( $_POST['dimension_unit'] ) ? sanitize_text_field( wp_unslash( $_POST['dimension_unit'] ) ) : '',
@@ -224,13 +222,11 @@ class WC_Admin_Setup_Wizard_Tracking {
 	 * @return void
 	 */
 	public function track_recommended() {
-		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		// phpcs:disable WordPress.Security.NonceVerification.NoNonceVerification
 		$properties = array(
 			'setup_storefront'    => isset( $_POST['setup_storefront_theme'] ) && 'yes' === $_POST['setup_storefront_theme'],
 			'setup_automated_tax' => isset( $_POST['setup_automated_taxes'] ) && 'yes' === $_POST['setup_automated_taxes'],
 			'setup_mailchimp'     => isset( $_POST['setup_mailchimp'] ) && 'yes' === $_POST['setup_mailchimp'],
-			'setup_facebook'      => isset( $_POST['setup_facebook'] ) && 'yes' === $_POST['setup_facebook'],
-			'setup_wc_admin'      => isset( $_POST['setup_wc_admin'] ) && 'yes' === $_POST['setup_wc_admin'],
 		);
 		// phpcs:enable
 
@@ -244,15 +240,6 @@ class WC_Admin_Setup_Wizard_Tracking {
 	 */
 	public function track_jetpack_activate() {
 		WC_Tracks::record_event( 'obw_activate' );
-	}
-
-	/**
-	 * Tracks when last next_steps screen is viewed in the OBW.
-	 *
-	 * @return void
-	 */
-	public function track_next_steps() {
-		WC_Tracks::record_event( 'obw_ready_view' );
 	}
 
 	/**

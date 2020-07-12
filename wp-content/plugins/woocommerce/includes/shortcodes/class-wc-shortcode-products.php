@@ -115,8 +115,8 @@ class WC_Shortcode_Products {
 				'limit'          => '-1',      // Results limit.
 				'columns'        => '',        // Number of columns.
 				'rows'           => '',        // Number of rows. If defined, limit will be ignored.
-				'orderby'        => '',        // menu_order, title, date, rand, price, popularity, rating, or id.
-				'order'          => '',        // ASC or DESC.
+				'orderby'        => 'title',   // menu_order, title, date, rand, price, popularity, rating, or id.
+				'order'          => 'ASC',     // ASC or DESC.
 				'ids'            => '',        // Comma separated IDs.
 				'skus'           => '',        // Comma separated SKUs.
 				'category'       => '',        // Comma separated category slugs or ids.
@@ -125,7 +125,6 @@ class WC_Shortcode_Products {
 				'terms'          => '',        // Comma separated term slugs or ids.
 				'terms_operator' => 'IN',      // Operator to compare terms. Possible values are 'IN', 'NOT IN', 'AND'.
 				'tag'            => '',        // Comma separated tag slugs.
-				'tag_operator'   => 'IN',      // Operator to compare tags. Possible values are 'IN', 'NOT IN', 'AND'.
 				'visibility'     => 'visible', // Product visibility setting. Possible values are 'visible', 'catalog', 'search', 'hidden'.
 				'class'          => '',        // HTML class.
 				'page'           => 1,         // Page for pagination.
@@ -179,7 +178,7 @@ class WC_Shortcode_Products {
 			'post_status'         => 'publish',
 			'ignore_sticky_posts' => true,
 			'no_found_rows'       => false === wc_string_to_bool( $this->attributes['paginate'] ),
-			'orderby'             => empty( $_GET['orderby'] ) ? $this->attributes['orderby'] : wc_clean( wp_unslash( $_GET['orderby'] ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			'orderby'             => empty( $_GET['orderby'] ) ? $this->attributes['orderby'] : wc_clean( wp_unslash( $_GET['orderby'] ) ), // phpcs:ignore WordPress.Security.NonceVerification.NoNonceVerification
 		);
 
 		$orderby_value         = explode( '-', $query_args['orderby'] );
@@ -189,7 +188,7 @@ class WC_Shortcode_Products {
 		$query_args['order']   = $order;
 
 		if ( wc_string_to_bool( $this->attributes['paginate'] ) ) {
-			$this->attributes['page'] = absint( empty( $_GET['product-page'] ) ? 1 : $_GET['product-page'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$this->attributes['page'] = absint( empty( $_GET['product-page'] ) ? 1 : $_GET['product-page'] ); // WPCS: input var ok, CSRF ok.
 		}
 
 		if ( ! empty( $this->attributes['rows'] ) ) {
@@ -370,7 +369,7 @@ class WC_Shortcode_Products {
 				'taxonomy' => 'product_tag',
 				'terms'    => array_map( 'sanitize_title', explode( ',', $this->attributes['tag'] ) ),
 				'field'    => 'slug',
-				'operator' => $this->attributes['tag_operator'],
+				'operator' => 'IN',
 			);
 		}
 	}
@@ -593,14 +592,7 @@ class WC_Shortcode_Products {
 		// Remove ordering query arguments which may have been added by get_catalog_ordering_args.
 		WC()->query->remove_ordering_args();
 
-		/**
-		 * Filter shortcode products query results.
-		 *
-		 * @since 4.0.0
-		 * @param stdClass $results Query results.
-		 * @param WC_Shortcode_Products $this WC_Shortcode_Products instance.
-		 */
-		return apply_filters( 'woocommerce_shortcode_products_query_results', $results, $this );
+		return $results;
 	}
 
 	/**
@@ -650,7 +642,7 @@ class WC_Shortcode_Products {
 
 			if ( wc_get_loop_prop( 'total' ) ) {
 				foreach ( $products->ids as $product_id ) {
-					$GLOBALS['post'] = get_post( $product_id ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+					$GLOBALS['post'] = get_post( $product_id ); // WPCS: override ok.
 					setup_postdata( $GLOBALS['post'] );
 
 					// Set custom product visibility when quering hidden products.
@@ -664,7 +656,7 @@ class WC_Shortcode_Products {
 				}
 			}
 
-			$GLOBALS['post'] = $original_post; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$GLOBALS['post'] = $original_post; // WPCS: override ok.
 			woocommerce_product_loop_end();
 
 			// Fire standard shop loop hooks when paginating results so we can show result counts and so on.

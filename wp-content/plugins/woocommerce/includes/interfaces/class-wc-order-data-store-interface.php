@@ -22,7 +22,7 @@ interface WC_Order_Data_Store_Interface {
 	 * Get amount already refunded.
 	 *
 	 * @param WC_Order $order Order object.
-	 * @return float
+	 * @return string
 	 */
 	public function get_total_refunded( $order );
 

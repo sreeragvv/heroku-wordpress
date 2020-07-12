@@ -6,8 +6,6 @@
  * @version 3.0.0
  */
 
-use Automattic\Jetpack\Constants;
-
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -132,22 +130,6 @@ class WC_Install {
 			'wc_update_360_downloadable_product_permissions_index',
 			'wc_update_360_db_version',
 		),
-		'3.7.0' => array(
-			'wc_update_370_tax_rate_classes',
-			'wc_update_370_mro_std_currency',
-			'wc_update_370_db_version',
-		),
-		'3.9.0' => array(
-			'wc_update_390_move_maxmind_database',
-			'wc_update_390_change_geolocation_database_update_cron',
-			'wc_update_390_db_version',
-		),
-		'4.0.0' => array(
-			'wc_update_product_lookup_tables',
-			'wc_update_400_increase_size_of_column',
-			'wc_update_400_reset_action_scheduler_migration_status',
-			'wc_update_400_db_version',
-		),
 	);
 
 	/**
@@ -156,7 +138,6 @@ class WC_Install {
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'check_version' ), 5 );
 		add_action( 'init', array( __CLASS__, 'manual_database_update' ), 20 );
-		add_action( 'admin_init', array( __CLASS__, 'wc_admin_db_update_notice' ) );
 		add_action( 'woocommerce_run_update_callback', array( __CLASS__, 'run_update_callback' ) );
 		add_action( 'admin_init', array( __CLASS__, 'install_actions' ) );
 		add_filter( 'plugin_action_links_' . WC_PLUGIN_BASENAME, array( __CLASS__, 'plugin_action_links' ) );
@@ -171,7 +152,7 @@ class WC_Install {
 	 * This check is done on all requests and runs if the versions do not match.
 	 */
 	public static function check_version() {
-		if ( ! Constants::is_defined( 'IFRAME_REQUEST' ) && version_compare( get_option( 'woocommerce_version' ), WC()->version, '<' ) ) {
+		if ( ! defined( 'IFRAME_REQUEST' ) && version_compare( get_option( 'woocommerce_version' ), WC()->version, '<' ) ) {
 			self::install();
 			do_action( 'woocommerce_updated' );
 		}
@@ -186,20 +167,6 @@ class WC_Install {
 		$blog_id = get_current_blog_id();
 
 		add_action( 'wp_' . $blog_id . '_wc_updater_cron', array( __CLASS__, 'run_manual_database_update' ) );
-	}
-
-	/**
-	 * Add WC Admin based db update notice.
-	 *
-	 * @since 4.0.0
-	 */
-	public static function wc_admin_db_update_notice() {
-		if (
-			WC()->is_wc_admin_active() &&
-			false !== get_option( 'woocommerce_admin_install_timestamp' )
-		) {
-			new WC_Notes_Run_Db_Update();
-		}
 	}
 
 	/**
@@ -263,7 +230,7 @@ class WC_Install {
 		if ( ! empty( $_GET['do_update_woocommerce'] ) ) { // WPCS: input var ok.
 			check_admin_referer( 'wc_db_update', 'wc_db_update_nonce' );
 			self::update();
-			WC_Admin_Notices::add_notice( 'update', true );
+			WC_Admin_Notices::add_notice( 'update' );
 		}
 	}
 
@@ -284,10 +251,9 @@ class WC_Install {
 		set_transient( 'wc_installing', 'yes', MINUTE_IN_SECONDS * 10 );
 		wc_maybe_define_constant( 'WC_INSTALLING', true );
 
-		WC()->wpdb_table_fix();
 		self::remove_admin_notices();
-		self::create_tables();
 		self::create_options();
+		self::create_tables();
 		self::create_roles();
 		self::setup_environment();
 		self::create_terms();
@@ -335,7 +301,7 @@ class WC_Install {
 	 * @since  3.2.0
 	 * @return boolean
 	 */
-	public static function is_new_install() {
+	private static function is_new_install() {
 		$product_count = array_sum( (array) wp_count_posts( 'product' ) );
 
 		return is_null( get_option( 'woocommerce_version', null ) ) || ( 0 === $product_count && -1 === wc_get_page_id( 'shop' ) );
@@ -350,10 +316,8 @@ class WC_Install {
 	public static function needs_db_update() {
 		$current_db_version = get_option( 'woocommerce_db_version', null );
 		$updates            = self::get_db_update_callbacks();
-		$update_versions    = array_keys( $updates );
-		usort( $update_versions, 'version_compare' );
 
-		return ! is_null( $current_db_version ) && version_compare( $current_db_version, end( $update_versions ), '<' );
+		return ! is_null( $current_db_version ) && version_compare( $current_db_version, max( array_keys( $updates ) ), '<' );
 	}
 
 	/**
@@ -363,7 +327,7 @@ class WC_Install {
 	 */
 	private static function maybe_enable_setup_wizard() {
 		if ( apply_filters( 'woocommerce_enable_setup_wizard', true ) && self::is_new_install() ) {
-			WC_Admin_Notices::add_notice( 'install', true );
+			WC_Admin_Notices::add_notice( 'install' );
 			set_transient( '_wc_activation_redirect', 1, 30 );
 		}
 	}
@@ -378,7 +342,7 @@ class WC_Install {
 			if ( apply_filters( 'woocommerce_enable_auto_update_db', false ) ) {
 				self::update();
 			} else {
-				WC_Admin_Notices::add_notice( 'update', true );
+				WC_Admin_Notices::add_notice( 'update' );
 			}
 		} else {
 			self::update_db_version();
@@ -445,13 +409,9 @@ class WC_Install {
 	 * @return array
 	 */
 	public static function cron_schedules( $schedules ) {
-		$schedules['monthly']     = array(
+		$schedules['monthly'] = array(
 			'interval' => 2635200,
 			'display'  => __( 'Monthly', 'woocommerce' ),
-		);
-		$schedules['fifteendays'] = array(
-			'interval' => 1296000,
-			'display'  => __( 'Every 15 Days', 'woocommerce' ),
 		);
 		return $schedules;
 	}
@@ -478,15 +438,14 @@ class WC_Install {
 			wp_schedule_single_event( time() + ( absint( $held_duration ) * 60 ), 'woocommerce_cancel_unpaid_orders' );
 		}
 
-		// Delay the first run of `woocommerce_cleanup_personal_data` by 10 seconds
-		// so it doesn't occur in the same request. WooCommerce Admin also schedules
-		// a daily cron that gets lost due to a race condition. WC_Privacy's background
-		// processing instance updates the cron schedule from within a cron job.
-		wp_schedule_event( time() + 10, 'daily', 'woocommerce_cleanup_personal_data' );
+		wp_schedule_event( time(), 'daily', 'woocommerce_cleanup_personal_data' );
 		wp_schedule_event( time() + ( 3 * HOUR_IN_SECONDS ), 'daily', 'woocommerce_cleanup_logs' );
 		wp_schedule_event( time() + ( 6 * HOUR_IN_SECONDS ), 'twicedaily', 'woocommerce_cleanup_sessions' );
-		wp_schedule_event( time() + MINUTE_IN_SECONDS, 'fifteendays', 'woocommerce_geoip_updater' );
+		wp_schedule_event( strtotime( 'first tuesday of next month' ), 'monthly', 'woocommerce_geoip_updater' );
 		wp_schedule_event( time() + 10, apply_filters( 'woocommerce_tracker_event_recurrence', 'daily' ), 'woocommerce_tracker_send_event' );
+
+		// Trigger GeoLite2 database download after 1 minute.
+		wp_schedule_single_event( time() + ( MINUTE_IN_SECONDS * 1 ), 'woocommerce_geoip_updater' );
 	}
 
 	/**
@@ -558,10 +517,6 @@ class WC_Install {
 		add_option( 'woocommerce_thumbnail_image_width', '300', '', 'yes' );
 		add_option( 'woocommerce_checkout_highlight_required_fields', 'yes', '', 'yes' );
 		add_option( 'woocommerce_demo_store', 'no', '', 'no' );
-
-		// Define initial tax classes.
-		WC_Tax::create_tax_class( __( 'Reduced rate', 'woocommerce' ) );
-		WC_Tax::create_tax_class( __( 'Zero rate', 'woocommerce' ) );
 	}
 
 	/**
@@ -735,13 +690,6 @@ class WC_Install {
 		if ( $wpdb->has_cap( 'collation' ) ) {
 			$collate = $wpdb->get_charset_collate();
 		}
-
-		/*
-		 * Indexes have a maximum size of 767 bytes. Historically, we haven't need to be concerned about that.
-		 * As of WP 4.2, however, they moved to utf8mb4, which uses 4 bytes per character. This means that an index which
-		 * used to have room for floor(767/3) = 255 characters, now only has room for floor(767/4) = 191 characters.
-		 */
-		$max_index_length = 191;
 
 		$tables = "
 CREATE TABLE {$wpdb->prefix}woocommerce_sessions (
@@ -922,16 +870,14 @@ CREATE TABLE {$wpdb->prefix}wc_product_meta_lookup (
   `sku` varchar(100) NULL default '',
   `virtual` tinyint(1) NULL default 0,
   `downloadable` tinyint(1) NULL default 0,
-  `min_price` decimal(19,4) NULL default NULL,
-  `max_price` decimal(19,4) NULL default NULL,
+  `min_price` decimal(10,2) NULL default NULL,
+  `max_price` decimal(10,2) NULL default NULL,
   `onsale` tinyint(1) NULL default 0,
   `stock_quantity` double NULL default NULL,
   `stock_status` varchar(100) NULL default 'instock',
   `rating_count` bigint(20) NULL default 0,
   `average_rating` decimal(3,2) NULL default 0.00,
   `total_sales` bigint(20) NULL default 0,
-  `tax_status` varchar(100) NULL default 'taxable',
-  `tax_class` varchar(100) NULL default '',
   PRIMARY KEY  (`product_id`),
   KEY `virtual` (`virtual`),
   KEY `downloadable` (`downloadable`),
@@ -939,14 +885,7 @@ CREATE TABLE {$wpdb->prefix}wc_product_meta_lookup (
   KEY `stock_quantity` (`stock_quantity`),
   KEY `onsale` (`onsale`),
   KEY min_max_price (`min_price`, `max_price`)
-) $collate;
-CREATE TABLE {$wpdb->prefix}wc_tax_rate_classes (
-  tax_rate_class_id BIGINT UNSIGNED NOT NULL auto_increment,
-  name varchar(200) NOT NULL DEFAULT '',
-  slug varchar(200) NOT NULL DEFAULT '',
-  PRIMARY KEY  (tax_rate_class_id),
-  UNIQUE KEY slug (slug($max_index_length))
-) $collate;
+  ) $collate;
 		";
 
 		return $tables;
@@ -964,7 +903,6 @@ CREATE TABLE {$wpdb->prefix}wc_tax_rate_classes (
 		$tables = array(
 			"{$wpdb->prefix}wc_download_log",
 			"{$wpdb->prefix}wc_product_meta_lookup",
-			"{$wpdb->prefix}wc_tax_rate_classes",
 			"{$wpdb->prefix}wc_webhooks",
 			"{$wpdb->prefix}woocommerce_api_keys",
 			"{$wpdb->prefix}woocommerce_attribute_taxonomies",
@@ -1005,7 +943,7 @@ CREATE TABLE {$wpdb->prefix}wc_tax_rate_classes (
 		$tables = self::get_tables();
 
 		foreach ( $tables as $table ) {
-			$wpdb->query( "DROP TABLE IF EXISTS {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( "DROP TABLE IF EXISTS {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		}
 	}
 
@@ -1187,7 +1125,7 @@ CREATE TABLE {$wpdb->prefix}wc_tax_rate_classes (
 		}
 
 		// Install files and folders for uploading files and prevent hotlinking.
-		$upload_dir      = wp_get_upload_dir();
+		$upload_dir      = wp_upload_dir();
 		$download_method = get_option( 'woocommerce_file_download_method', 'force' );
 
 		$files = array(
@@ -1206,16 +1144,19 @@ CREATE TABLE {$wpdb->prefix}wc_tax_rate_classes (
 				'file'    => 'index.html',
 				'content' => '',
 			),
-			array(
+		);
+
+		if ( 'redirect' !== $download_method ) {
+			$files[] = array(
 				'base'    => $upload_dir['basedir'] . '/woocommerce_uploads',
 				'file'    => '.htaccess',
-				'content' => 'redirect' === $download_method ? 'Options -Indexes' : 'deny from all',
-			),
-		);
+				'content' => 'deny from all',
+			);
+		}
 
 		foreach ( $files as $file ) {
 			if ( wp_mkdir_p( $file['base'] ) && ! file_exists( trailingslashit( $file['base'] ) . $file['file'] ) ) {
-				$file_handle = @fopen( trailingslashit( $file['base'] ) . $file['file'], 'wb' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_read_fopen
+				$file_handle = @fopen( trailingslashit( $file['base'] ) . $file['file'], 'w' ); // phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_read_fopen
 				if ( $file_handle ) {
 					fwrite( $file_handle, $file['content'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fwrite
 					fclose( $file_handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fclose
@@ -1355,10 +1296,10 @@ CREATE TABLE {$wpdb->prefix}wc_tax_rate_classes (
 			if ( empty( $installed_plugins ) ) {
 				$installed_plugins = array();
 			}
-			$plugin_slug = $plugin_to_install['repo-slug'];
-			$plugin_file = isset( $plugin_to_install['file'] ) ? $plugin_to_install['file'] : $plugin_slug . '.php';
-			$installed   = false;
-			$activate    = false;
+			$plugin_slug       = $plugin_to_install['repo-slug'];
+			$plugin_file       = isset( $plugin_to_install['file'] ) ? $plugin_to_install['file'] : $plugin_slug . '.php';
+			$installed         = false;
+			$activate          = false;
 
 			// See if the plugin is installed already.
 			if ( isset( $installed_plugins[ $plugin_file ] ) ) {
